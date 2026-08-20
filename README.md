@@ -7,7 +7,7 @@ Ran on a VMWare instance of Ubuntu26. Ring buffer of size 65536 has fixed size b
 
 Google benchmark is used to avoid some compiler optimizations and to simplify test setup
 
-
+Compiled with aggressive O3 and march native optimizations 
 ## Results
 
 | Optimization | Batch 1 | Batch 256 | Batch 4096 |
