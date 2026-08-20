@@ -30,12 +30,13 @@ The important distinction is that caching reduces cross-core metadata traffic, w
 ### 3. Bitmask
 For power-of-two capacities:
 
-`index % Capacity`
-
+```cpp
+index % Capacity
+```
 can be replaced with:
-
-`index & (Capacity - 1)`
-
+```cpp
+index & (Capacity - 1)
+```
 To confirm whether the compiler automatically optimizes the modulo operator, perf stat was run comparing Cached Indices (Baseline) vs Bitmask at Batch 1:
 
 ```bash
