@@ -129,6 +129,3 @@ The results suggest that cached indices and batching reinforce each other: batch
    1. [Memory Magic Part 4: The Infinite Buffer](https://andreleite.com/posts/2025/nstl/virtual-memory-ring-buffer/)
    2. [What Every Programmer Should Know About Memory](https://liuyehcf.github.io/resources/paper/What-Every-Programmer%E2%80%93Should-Know-About-Memory.pdf)
    3. [Google Benchmark GitHub Repository](https://github.com/google/benchmark)
-
- your final submission!
-
