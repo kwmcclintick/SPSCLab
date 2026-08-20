@@ -16,15 +16,15 @@ Separating head and tail prevents producer and consumer from invalidating each o
 With larger batches, each index update is amortized over many items, so the coherence cost becomes a much smaller fraction of total work.
 ### 2. Cached indices
 The cached-index implementation avoids repeatedly reading the other thread's index:
-
+```cpp
 // Baseline
 tail = tail_.load(std::memory_order_acquire);
-
+```
 becomes conceptually:
-
+```cpp
 // Cachedif (queue_might_be_full)
     cached_tail = tail_.load(std::memory_order_acquire);
-
+```
 This can be surprisingly effective with batching. A batch operation publishes the local index only once, but the producer may still perform multiple batches while the consumer's index has not changed enough to require a fresh value. The cached index lets the producer continue using a locally-held value instead of repeatedly touching the consumer-owned cache line. Similarly, the consumer can continue using a cached head. This is reflected in the results: 1.23 → 1.49 G/s (~21%) at batch 4096.
 The important distinction is that caching reduces cross-core metadata traffic, while batching reduces how often that metadata needs to be published. The two optimizations can therefore complement each other.
 ### 3. Bitmask
