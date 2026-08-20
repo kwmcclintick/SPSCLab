@@ -69,13 +69,13 @@ By checking local snapshots, the software successfully skips executing costly at
 
 ### 3. Bitmask
 For power-of-two capacities:
-
+```cpp
 index % Capacity
-
+```
 can be replaced with:
-
+```cpp
 index & (Capacity - 1)
-
+```
 To confirm whether the compiler automatically optimizes the modulo operator, perf stat was run comparing Baseline vs Bitmask at Batch 1:
 
 ```bash
