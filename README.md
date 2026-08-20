@@ -5,7 +5,7 @@ SPSCLab measures how common SPSC ring-buffer optimizations affect throughput und
 
 Ran on a VMWare instance of Ubuntu26. Ring buffer of size 65536 has fixed size bwrches of data simultaneously pushed and popped until 10 million items have passed through.
 
-Google benchmark is used
+Google benchmark is used to avoid some compiler optimizations and to simplify test setup
 ## Results
 
 | Optimization | Batch 1 | Batch 256 | Batch 4096 |
