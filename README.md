@@ -10,7 +10,7 @@ SPSCLab measures how common SPSC ring-buffer optimizations affect throughput und
 | Bitmask | 47.9 M/s | 1.20 G/s | 1.52 G/s |
 | Mirrored mmap | 25.5 M/s | 1.58 G/s | 2.40 G/s |
 
-## Lesson
+## Lessons
 ### 1. Cache-line alignment
 Separating head and tail prevents producer and consumer from invalidating each other's cache line. It helps most for single-item operations: 50.0 → 67.4 M/s (~35%)
 With larger batches, each index update is amortized over many items, so the coherence cost becomes a much smaller fraction of total work.
@@ -97,7 +97,4 @@ The results suggest that cached indices and batching reinforce each other: batch
    1. [Memory Magic Part 4: The Infinite Buffer](https://andreleite.com/posts/2025/nstl/virtual-memory-ring-buffer/)
    2. [What Every Programmer Should Know About Memory](https://liuyehcf.github.io/resources/paper/What-Every-Programmer%E2%80%93Should-Know-About-Memory.pdf)
    3. [Google Benchmark GitHub Repository](https://github.com/google/benchmark)
-
-------------------------------
-If you would like to analyze the L1 Instruction Cache (l1-icache-load-misses) variance between your Bitmask and Mirrored MMAP runs next, let me know!
 
