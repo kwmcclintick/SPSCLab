@@ -1,8 +1,11 @@
 # SPSCLab
 SPSCLab measures how common SPSC ring-buffer optimizations affect throughput under continuous producer/consumer workloads running on separate physical CPU cores.
 
-ran on a VMWare instance of Ubuntu26
+## Experiment
 
+Ran on a VMWare instance of Ubuntu26. Ring buffer of size 65536 has fixed size bwrches of data simultaneously pushed and popped until 10 million items have passed through.
+
+Google benchmark is used
 ## Results
 
 | Optimization | Batch 1 | Batch 256 | Batch 4096 |
