@@ -3,9 +3,11 @@ SPSCLab measures how common SPSC ring-buffer optimizations affect throughput und
 
 ## Experiment
 
-Ran on a VMWare instance of Ubuntu26. Ring buffer of size 65536 has fixed size bwrches of data simultaneously pushed and popped until 10 million items have passed through.
+Ran on a VMWare instance of Ubuntu26. Ring buffer of size 65536 has fixed size batches of data simultaneously pushed and popped until 10 million items have passed through.
 
 Google benchmark is used to avoid some compiler optimizations and to simplify test setup
+
+
 ## Results
 
 | Optimization | Batch 1 | Batch 256 | Batch 4096 |
@@ -16,7 +18,7 @@ Google benchmark is used to avoid some compiler optimizations and to simplify te
 | Bitmask | 47.9 M/s | 1.20 G/s | 1.52 G/s |
 | Mirrored mmap | 25.5 M/s | 1.58 G/s | 2.40 G/s |
 
-## Lessons
+## Discussion
 
 ### 1. Cache-line alignment
 Separating `head` and `tail` prevents the producer and consumer from invalidating each other's cache lines (false sharing). It helps most for single-item operations: **50.0 → 67.4 M/s (~35%)**
