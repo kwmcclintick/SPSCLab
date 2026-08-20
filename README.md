@@ -115,12 +115,14 @@ The results suggest that cached indices and batching reinforce each other: batch
    1. Verify that your system has a local installation of the Google Benchmark framework.
    2. Compile the suite using the standard Release profile to enable compiler optimizations:
    
-   g++ -O3 -DNDEBUG -std=c++17 main.cpp -lbenchmark -lpthread -o spsc_bench
+   ```bash
+   ./build.sh
+   ```
    
    3. Run the benchmark tool:
-   
+   ```bash
    ./spsc_bench
-   
+   ```
    
 ## References
 
