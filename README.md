@@ -1,6 +1,8 @@
 # SPSCLab
 SPSCLab measures how common SPSC ring-buffer optimizations affect throughput under continuous producer/consumer workloads running on separate physical CPU cores.
 
+ran on a VMWare instance of Ubuntu26
+
 ## Results
 
 | Optimization | Batch 1 | Batch 256 | Batch 4096 |
