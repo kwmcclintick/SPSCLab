@@ -97,6 +97,9 @@ perf stat -r 10 -e cycles,instructions \
 * Bitmask Variant: 37,383,959,845 instructions | 71,619,518,594 cycles
 
 The explicit Bitmask variant yielded only a minor 1.9% instruction reduction and nearly identical execution cycles. This confirms the hypothesis: because Capacity is a compile-time constant power-of-two, the compiler's optimization pass had already converted the modulo operator (%) into an identical bitwise AND (&) sequence under the hood.
+
+Using [godbolt](https://godbolt.org/) it was revealed that the baseline implementation has the exact same compiled assembly for `push_batch`, confirming that the compiler, at least with these flags, is implementing the bit trick spontaneously.
+
 ### 4. Mirrored mmap
 Mirroring the ring buffer in virtual memory makes a wrapped batch appear contiguous, completely eliminating explicit wraparound handling. It dominates for large batches: 1.23 → 2.40 G/s (~95%) at batch 4096.
 
