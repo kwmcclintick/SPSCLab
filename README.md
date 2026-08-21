@@ -1,14 +1,14 @@
 # SPSCLab
 SPSCLab measures how common SPSC ring-buffer optimizations affect throughput under continuous producer/consumer workloads running on separate physical CPU cores.
 
-## Experiment
+# Experiment
 
 Ran on a VMWare instance of Ubuntu26. Ring buffer of size 65536 has fixed size batches of data simultaneously pushed and popped until 10 million items have passed through.
 
 Google benchmark is used to avoid some compiler optimizations and to simplify test setup
 
 Compiled with aggressive O3 and march native optimizations 
-## Results
+# Results
 
 | Optimization | Batch 1 | Batch 256 | Batch 4096 |
 |---|---|---|---|
@@ -18,9 +18,9 @@ Compiled with aggressive O3 and march native optimizations
 | Bitmask | 47.9 M/s | 1.20 G/s | 1.52 G/s |
 | Mirrored mmap | 25.5 M/s | 1.58 G/s | 2.40 G/s |
 
-## Discussion
+# Discussion
 
-### 1. Cache-line alignment
+## 1. Cache-line alignment
 Separating `head` and `tail` prevents the producer and consumer from invalidating each other's cache lines (false sharing). It helps most for single-item operations: **50.0 → 67.4 M/s (~35%)**
 
 With larger batches, each index update is amortized over many items, so the coherence cost becomes a much smaller fraction of total work.
@@ -44,7 +44,7 @@ The data delivers an absolute validation of the hypothesis. Forcing `head` and `
 
 By terminating false sharing, the processor cores are no longer forced to issue hardware cache-line validation signals across the system interconnect. This dropped total execution cycles by **16.78 Billion**, resulting in a clean **11.2% reduction in overall processing latency** for streaming workloads.
 
-### 2. Cached indices
+## 2. Cached indices
 The cached-index implementation avoids repeatedly reading the other thread's index:
 
 ```cpp
@@ -74,7 +74,7 @@ perf stat -r 10 -e cycles,instructions,cache-references,cache-misses \
 The data perfectly validates the hypothesis. The Cached Indices variant eliminated 492.16 Million Last Level Cache lookups (a 16.1% reduction in cross-core hardware references) and dropped total instructions by 20.56 Billion (12% fewer instructions).
 By checking local snapshots, the software successfully skips executing costly atomic memory fence instructions (std::memory_order_acquire) on the majority of iterations. The small cycle and runtime variance (7.37s baseline vs 8.07s cached) is an artifact of VM environments: removing memory barriers allows the thread to execute empty spin-loops much more rapidly while waiting for the peer thread to be rescheduled by the hypervisor.
 
-### 3. Bitmask
+## 3. Bitmask
 For power-of-two capacities:
 ```cpp
 index % Capacity
@@ -100,7 +100,7 @@ The explicit Bitmask variant yielded only a minor 1.9% instruction reduction and
 
 Using [godbolt](https://godbolt.org/) it was revealed that the baseline implementation has the exact same compiled assembly for `push_batch`, confirming that the compiler, at least with these flags, is implementing the bit trick spontaneously.
 
-### 4. Mirrored mmap
+## 4. Mirrored mmap
 Mirroring the ring buffer in virtual memory makes a wrapped batch appear contiguous, completely eliminating explicit wraparound handling. It dominates for large batches: 1.23 → 2.40 G/s (~95%) at batch 4096.
 
 The primary hypothesis states that Mirrored MMAP does not merely accelerate the wraparound event itself (which only occurs once every 16 batches at Batch 4096). Instead, it frees the compiler to optimize the straight-line code path for every single operation by removing all conditional split-copy logic.
@@ -120,7 +120,40 @@ The data reveals a massive 67.4% drop in total instructions and an elimination o
 Because a wraparound only happens on 6.25% of the iterations (1 out of 16), this scale of instruction reduction proves that the non-wrapping paths became vastly more efficient. By guaranteeing a single, un-fragmented contiguous memory destination, the compiler was able to drop conditional boundary safety branches, tightly unroll data loops, and fully leverage hardware vector registers (SIMD/AVX) to move large data payloads in fewer clock cycles.
 The technique is less attractive for single-item operations, where its additional complexity and setup costs are not offset by contiguous bulk access.
 
-## Takeaway
+Once again using (godbolt)[https://godbolt.org/], we see the following differences in assembly for `push_batch`:
+
+### 1. The Branching Penalty (The Hot-Path Split)
+
+```asm
+cmp rax, 1024 
+jbe .L278
+```
+
+The compiler is forced to insert a conditional check to see if the batch fits cleanly (jbe .L278) or if it overflows and wraps around. If the program frequently switches between wrapping and not wrapping, the CPU's branch predictor will guess wrong, causing stalls in the hardware pipeline.
+
+For the mirrored MMAP buffer, there is absolutely no branch check for a wrap-around. The code is completely linear. It calculates one pointer and moves forward.
+
+### 2. The Worst-Case Scenario (Double memcpy)
+In the baseline assembly, if the condition fails, and the memory wraps around:
+
+   1. Calculates the size of the first chunk.
+   2. Calls memcpy the first time.
+   3. Pulls values back out of the stack.
+   4. Calculates a new destination offset (lea rdx, [rcx-1024+rbx]).
+   5. Shifts the pointers and calls memcpy a second time.
+
+
+* Performance Impact: Calling memcpy twice doubles the function call overhead and disrupts the CPU's data prefetcher.
+* The Solution: the Mirrored MMAP buffer completely eliminates this block of code. It always executes exactly one single memcpy call because the virtual memory hardware spoofs a completely flat array.
+
+### 3. Stack Spill and Register Management
+Because the baseline version has a complex code path with two potential function calls, the compiler has to be incredibly defensive with registers.
+
+* Baseline Memcpy: It must reserve a large 56-byte stack frame (sub rsp, 56). It spends a lot of clock cycles constantly shuffling registers to the memory stack and back (e.g., mov QWORD PTR [rsp+24], rcx, mov rsi, QWORD PTR [rsp+8]).
+* Mirrored MMAP: While it still uses the stack (sub rsp, 40) to prepare for its single memcpy, it does significantly less register saving and parameter recalculation because it never has to orchestrate a second copy operation.
+
+
+## Takeaways
 Different optimizations attack different costs:
 
 * Alignment: reduces cache-line contention (though its effects can be masked under high hypervisor context-switching).
@@ -129,7 +162,8 @@ Different optimizations attack different costs:
 * Mirrored mmap: eliminates wraparound overhead for large contiguous batches by unleashing aggressive compiler loop vectorization, stripping away 67.4% of instructions.
 
 The results suggest that cached indices and batching reinforce each other: batching makes each index update more valuable to amortize, while cached indices reduce unnecessary reads of the producer/consumer's remotely-owned metadata.
-## Build and Run
+
+# Build and Run
 
    1. Verify that your system has a local installation of the Google Benchmark framework.
    2. Compile the suite using the standard Release profile to enable compiler optimizations:
@@ -143,7 +177,7 @@ The results suggest that cached indices and batching reinforce each other: batch
    ./spsc_bench
    ```
    
-## References
+# References
 
    1. [Memory Magic Part 4: The Infinite Buffer](https://andreleite.com/posts/2025/nstl/virtual-memory-ring-buffer/)
    2. [What Every Programmer Should Know About Memory](https://liuyehcf.github.io/resources/paper/What-Every-Programmer%E2%80%93Should-Know-About-Memory.pdf)
